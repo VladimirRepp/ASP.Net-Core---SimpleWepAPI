@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Главная</title>
+
+    <style>
+        td{padding: 5px;}
+        button{margin: 5px;}
+    </style>
+</head>
+
+<body>
+
+    <h1> Главное меню! </h1>
+
+    <div>
+        <p>
+            <button id="linkToUsersBtn">Пользователи</button>
+            <button id="linkToVehiclesBtn">Автомобили</button>
+        </p>
+    </div>
+
+    <script>
+        document.getElementById("linkToUsersBtn").addEventListener("click", () => window.location.href = "/users");
+        document.getElementById("linkToVehiclesBtn").addEventListener("click", () => window.location.href = "/vehicles");
+    </script>
+
+</body>
+</html>

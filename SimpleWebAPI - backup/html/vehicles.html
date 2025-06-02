@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Автомобили</title>
+
+    <style>
+        td{padding: 5px;}
+        button{margin: 5px;}
+    </style>
+</head>
+
+<body>
+
+    <h1> Список автомобилей! </h1>
+
+    <br />
+    <h3> Поле ввода данных автомобиля: </h3>
+
+    <div>
+        <input type="hidden" id="vehicleId" />
+
+        <p>
+            Бренд: <br />
+            <input id="vehicleBrand" />
+        </p>
+
+        <p>
+            Модель: <br />
+            <input id="vehicleModel" />
+        </p>
+
+        <p>
+            Год выпуска: <br />
+            <input id="vehicleReleaseYear" type="number" />
+        </p>
+
+        <p>
+            <button id="saveBtn">Сохранить</button>
+            <button id="resetBtn">Сбросить</button>
+        </p>
+    </div>
+
+    <br />
+    <h3> Таблица автомобилей: </h3>
+    
+    <table>
+        <thead> <tr> <th>Бренд</th> <th>Модель</th> <th>Год выпуска</th> </tr> </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        async function getAllVehicles() {
+            const response = await fetch(
+                "/api/vehicles",
+                {
+                    method: "GET",
+                    headers: {"Accept": "application/json"}
+                }
+            );
+
+            if (response.ok === true) {
+                const vehicles = await response.json();
+                const rows = document.querySelector("tbody");
+
+                vehicles.forEach(vehicle => rows.append(addRow(vehicle)));
+            }
+        }
+
+        async function getVehicle(id) {
+            const response = await fetch(
+                `/api/vehicles/${id}`,
+                {
+                    method: "GET",
+                    headers: { "Accept": "application/json" }
+                }
+            );
+
+            if (response.ok === true) {
+                const vehicle = await response.json();
+
+                document.getElementById("vehicleId").value = vehicle.id;
+                document.getElementById("vehicleBrand").value = vehicle.brand;
+                document.getElementById("vehicleModel").value = vehicle.model;
+                document.getElementById("vehicleReleaseYear").value = vehicle.releaseYear;
+            }
+            else {
+                const err = await response.json();
+                console.log(err.message);
+            }
+        }
+
+        async function createVehicle(vehicleBrand, vehicleModel, vehicleReleaseYear) {
+            const response = await fetch(
+                "/api/vehicles",
+                {
+                    method: "POST",
+                    headers: { "Accept": "application/json", "Content-type": "application/json" },
+                    body: JSON.stringify({
+                        brand: vehicleBrand,
+                        model: vehicleModel,
+                        releaseYear: parseInt(vehicleReleaseYear, 10) 
+                    })
+                }
+            );
+
+            if (response.ok === true) {
+                const vehicle = await response.json();
+                document.querySelector("tbody").append(addRow(vehicle));
+            }
+            else {
+                const err = response.json();
+                console.log(err.message);
+            }
+        }
+
+        async function editVehicle(vehicleId, vehicleBrand, vehicleModel, vehicleReleaseYear) {
+            const response = await fetch(
+                "/api/vehicles",
+                {
+                    method: "PUT",
+                    headers: { "Accept": "application/json", "Content-type": "application/json" },
+                    body: JSON.stringify({
+                        id: vehicleId,
+                        brand: vehicleBrand,
+                        model: vehicleModel,
+                        releaseYear: parseInt(vehicleReleaseYear, 10) 
+                    })
+                }
+            );
+
+            if (response.ok === true) {
+                const vehicle = await response.json();
+                document.querySelector(`tr[data-rowid='${vehicle.id}']`).replaceWith(addRow(vehicle));
+            }
+            else {
+                const err = response.json();
+                console.log(err.message);
+            }
+        }
+
+        async function deleteVehicle(id) {
+            const response = await fetch(
+                `/api/vehicles/${id}`,
+                {
+                    method: "DELETE",
+                    headers: { "Accept": "application/json" }
+                }
+            );
+
+            if (response.ok === true) {
+                const vehicle = await response.json();
+                document.querySelector(`tr[data-rowid='${vehicle.id}']`).remove();
+            }
+            else {
+                const err = response.json();
+                console.log(err.message);
+            }
+        }
+
+        function reset() {
+            document.getElementById("vehicleId").value = "";
+            document.getElementById("vehicleBrand").value = "";
+            document.getElementById("vehicleModel").value = "";
+            document.getElementById("vehicleReleaseYear").value = 0;
+        }
+
+        function addRow(vehicle) {
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", vehicle.id);
+
+            const brandTd = document.createElement("td");
+            brandTd.append(vehicle.brand);
+            tr.append(brandTd);
+
+            const modelTd = document.createElement("td");
+            modelTd.append(vehicle.model);
+            tr.append(modelTd);
+
+            const releaseTd = document.createElement("td");
+            releaseTd.append(vehicle.releaseYear);
+            tr.append(releaseTd);
+
+            const linksTd = document.createElement("td");
+
+            const selectLink = document.createElement("button");
+            selectLink.append("Выбрать");
+            selectLink.addEventListener("click", async () => await getVehicle(vehicle.id));
+            linksTd.append(selectLink);
+
+            const removeLink = document.createElement("button");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", async () => await deleteVehicle(vehicle.id));
+            linksTd.append(removeLink);
+
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+
+        document.getElementById("resetBtn").addEventListener("click", () => reset());
+
+        document.getElementById("saveBtn").addEventListener("click", async () => {
+            const id = document.getElementById("vehicleId").value;
+            const brand = document.getElementById("vehicleBrand").value;
+            const model = document.getElementById("vehicleModel").value;
+            const releaseYear = document.getElementById("vehicleReleaseYear").value;
+
+            if (id === "")
+                await createVehicle(brand, model, releaseYear);
+            else
+                await editVehicle(id, brand, model, releaseYear);
+
+            reset();
+        });
+
+        getAllVehicles();
+    </script>
+
+</body>
+</html>
