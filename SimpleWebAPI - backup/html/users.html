@@ -1,0 +1,202 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/css/site.css">
+    <title>Пользователи</title>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Список пользователей</h1>
+
+        <div class="form-group">
+            <h3>Поле ввода пользовательских данных</h3>
+            <input type="hidden" id="userId" />
+
+            <div class="form-control-group">
+                <label for="userLogin">Логин:</label>
+                <input type="text" id="userLogin" class="form-control" />
+            </div>
+
+            <div class="form-control-group">
+                <label for="userPassword">Пароль:</label>
+                <input type="password" id="userPassword" class="form-control" />
+            </div>
+
+            <div class="form-actions">
+                <button id="saveBtn" class="btn-primary">Сохранить</button>
+                <button id="resetBtn" class="btn-secondary">Сбросить</button>
+            </div>
+        </div>
+
+        <br />
+        <h3> Таблица пользователей: </h3>
+
+        <table>
+            <thead> <tr> <th>Логин</th> <th>Пароль</th> </tr> </thead>
+            <tbody></tbody>
+        </table>
+
+        <script>
+            async function getAllUsers() {
+                const response = await fetch(
+                    "/api/users",
+                    {
+                        method: "GET",
+                        headers: { "Accept": "application/json" }
+                    }
+                );
+
+                if (response.ok === true) {
+                    const users = await response.json();
+                    const rows = document.querySelector("tbody");
+
+                    users.forEach(user => rows.append(addRow(user)));
+                }
+            }
+
+            async function getUser(id) {
+                const response = await fetch(
+                    `/api/users/${id}`,
+                    {
+                        method: "GET",
+                        headers: { "Accept": "application/json" }
+                    }
+                );
+
+                if (response.ok === true) {
+                    const user = await response.json();
+
+                    document.getElementById("userId").value = user.id;
+                    document.getElementById("userLogin").value = user.login;
+                    document.getElementById("userPassword").value = user.password;
+                }
+                else {
+                    const err = await response.json();
+                    console.log(err.message);
+                }
+            }
+
+            async function createUser(userLogin, userPassword) {
+                const response = await fetch(
+                    "/api/users",
+                    {
+                        method: "POST",
+                        headers: { "Accept": "application/json", "Content-type": "application/json" },
+                        body: JSON.stringify({
+                            login: userLogin,
+                            password: userPassword
+                        })
+                    }
+                );
+
+                if (response.ok === true) {
+                    const user = await response.json();
+                    document.querySelector("tbody").append(addRow(user));
+                }
+                else {
+                    const err = response.json();
+                    console.log(err.message);
+                }
+            }
+
+            async function editUser(userId, userLogin, userPassword) {
+                const response = await fetch(
+                    "/api/users",
+                    {
+                        method: "PUT",
+                        headers: { "Accept": "application/json", "Content-type": "application/json" },
+                        body: JSON.stringify({
+                            id: userId,
+                            login: userLogin,
+                            password: userPassword
+                        })
+                    }
+                );
+
+                if (response.ok === true) {
+                    const user = await response.json();
+                    document.querySelector(`tr[data-rowid='${user.id}']`).replaceWith(addRow(user));
+                }
+                else {
+                    const err = response.json();
+                    console.log(err.message);
+                }
+            }
+
+            async function deleteUser(id) {
+                const response = await fetch(
+                    `/api/users/${id}`,
+                    {
+                        method: "DELETE",
+                        headers: { "Accept": "application/json" }
+                    }
+                );
+
+                if (response.ok === true) {
+                    const user = await response.json();
+                    document.querySelector(`tr[data-rowid='${user.id}']`).remove();
+                }
+                else {
+                    const err = response.json();
+                    console.log(err.message);
+                }
+            }
+
+            function reset() {
+                document.getElementById("userId").value = "";
+                document.getElementById("userLogin").value = "";
+                document.getElementById("userPassword").value = "";
+            }
+
+            function addRow(user) {
+                const tr = document.createElement("tr");
+                tr.setAttribute("data-rowid", user.id);
+
+                const loginTd = document.createElement("td");
+                loginTd.append(user.login);
+                tr.append(loginTd);
+
+                const passwordTd = document.createElement("td");
+                passwordTd.append(user.password);
+                tr.append(passwordTd);
+
+                const linksTd = document.createElement("td");
+
+                const selectLink = document.createElement("button");
+                selectLink.append("Выбрать");
+                selectLink.addEventListener("click", async () => await getUser(user.id));
+                linksTd.append(selectLink);
+
+                const removeLink = document.createElement("button");
+                removeLink.append("Удалить");
+                removeLink.addEventListener("click", async () => await deleteUser(user.id));
+                linksTd.append(removeLink);
+
+                tr.appendChild(linksTd);
+
+                return tr;
+            }
+
+            document.getElementById("resetBtn").addEventListener("click", () => reset());
+
+            document.getElementById("saveBtn").addEventListener("click", async () => {
+                const id = document.getElementById("userId").value;
+                const login = document.getElementById("userLogin").value;
+                const password = document.getElementById("userPassword").value;
+
+                if (id === "")
+                    await createUser(login, password);
+                else
+                    await editUser(id, login, password);
+
+                reset();
+            });
+
+            getAllUsers();
+        </script>
+
+</body>
+</html>
